@@ -1,0 +1,23 @@
+sources:
+  autostat:
+    url: "https://autostat.ru"
+    enabled: true
+  drom:
+    url: "https://drom.ru"
+    enabled: true
+  auto_ru:
+    url: "https://auto.ru"
+    enabled: true
+  minpromtorg:
+    url: "https://minpromtorg.gov.ru"
+    enabled: true
+  rss:
+    urls:
+      - "https://example.com/rss"  # Пример RSS-ленты
+    enabled: true
+
+database:
+  path: "news.db"
+
+scheduler:
+  interval_minutes: 60

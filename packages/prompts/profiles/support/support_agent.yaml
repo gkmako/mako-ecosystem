@@ -1,0 +1,26 @@
+id: support_agent
+display_name: "Support Agent"
+contour: support
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "support_agent.jinja2"
+  role: "Support Agent"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3.7-max"
+    domain: "Support"
+    checks:
+      - "корректность использования базы знаний, полноту ответа, соответствие инструкциям и отсутствие неподтвержденных утверждений"

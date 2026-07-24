@@ -1,0 +1,21 @@
+id: copywriter_agent
+display_name: "Copywriter Agent"
+contour: content
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "copywriter_agent.jinja2"
+  role: "Copywriter Agent"
+
+capabilities:
+  tools:
+    []
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "anthropic/claude-opus-4.5"
+  temperature: 0.2
+  max_retries: 2

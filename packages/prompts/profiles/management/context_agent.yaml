@@ -1,0 +1,22 @@
+id: context_agent
+display_name: "Context Agent"
+contour: management
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "context_agent.jinja2"
+  role: "Context Agent"
+
+capabilities:
+  tools:
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

@@ -1,0 +1,27 @@
+id: incident_agent
+display_name: "Incident Agent"
+contour: support
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "incident_agent.jinja2"
+  role: "Incident Agent"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+    - read_file
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "two_agent"
+  model: "deepseek/deepseek-v4-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "deepseek/deepseek-v4-pro"
+    domain: "Incident"
+    checks:
+      - "корректность RCA, достаточность доказательств, логическую связь причины и следствия, полноту рекомендаций и отсутствие необоснованных выводов"

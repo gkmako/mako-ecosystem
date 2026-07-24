@@ -1,0 +1,21 @@
+id: account_manager
+display_name: "Account Manager Agent"
+contour: support
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "account_manager.jinja2"
+  role: "Account Manager Agent"
+
+capabilities:
+  tools:
+    - search_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

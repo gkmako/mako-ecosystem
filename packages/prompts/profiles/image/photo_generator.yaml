@@ -1,0 +1,29 @@
+id: photo_generator
+display_name: "Photo Generator"
+contour: image
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "photo_generator.jinja2"
+  role: "Photo Generator"
+
+capabilities:
+  tools:
+    - generate_photo
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "one_agent"
+  model: "black-forest-labs/flux.2-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "google/gemini-2.5-flash-lite"
+    domain: "Photo Generation"
+    checks:
+      - "фотореалистичность результата"
+      - "качество освещения и композиции"
+      - "соответствие сцены запросу"

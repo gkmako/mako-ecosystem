@@ -1,0 +1,23 @@
+id: database_agent
+display_name: "Database Agent"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "database_agent.jinja2"
+  role: "Database Agent"
+
+capabilities:
+  tools:
+    - get_project_structure
+    - read_file
+    - write_file
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

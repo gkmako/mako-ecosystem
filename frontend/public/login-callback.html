@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+  if (code) {
+    window.parent.postMessage({ type: 'kc-auth-success', code: code }, window.location.origin);
+  } else {
+    window.parent.postMessage({ type: 'kc-auth-error', error: error || 'unknown' }, window.location.origin);
+  }
+</script>
+</body>
+</html>

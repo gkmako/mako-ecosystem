@@ -1,0 +1,30 @@
+# config.yaml для сборщика новостей по электромобилям РФ
+
+rss_feeds:
+  - https://news.yandex.ru/auto.rss
+  - https://habr.com/ru/rss/hub/autos/all/
+  - https://www.ixbt.com/rss/news.xml
+  - https://hi-tech.mail.ru/rss/
+  - https://auto.ru/rss/
+
+keywords:
+  - электромобиль
+  - электрокар
+  - EV
+  - зарядная станция
+  - ЭЗС
+  - Evolute
+  - Москвич
+  - Атом
+  - Zeekr
+  - BYD
+  - Avatr
+  - Li Ideal
+  - Тесла
+  - электротяга
+
+settings:
+  db_path: ./news_database.db
+  output_dir: ./output/
+  log_level: INFO
+  schedule_time: "09:00"

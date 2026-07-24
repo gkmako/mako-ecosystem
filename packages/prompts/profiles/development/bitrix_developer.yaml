@@ -1,0 +1,30 @@
+id: bitrix_developer
+display_name: "Bitrix Developer"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "bitrix_developer.jinja2"
+  role: "Bitrix Developer"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "Bitrix"
+    checks:
+      - "использование D7, совместимость с коробочной версией, безопасность, производительность, соответствие API Битрикс и найденной документации"

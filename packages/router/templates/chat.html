@@ -1,0 +1,235 @@
+{% extends "layout.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="/static/css/chat.css">
+<script src="/static/js/marked.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="chat-container">
+        <!-- Sidebar -->
+        <div class="chat-sidebar">
+          <div style="margin-bottom: 24px;">
+            <img src="/static/images/logo.svg" alt="MAKO AI Ecosystem" style="height: 36px;">
+          </div>
+          <a href="/admin/" class="d-block py-2 px-3 text-white rounded mb-1" style="background: #028090;">Dashboard</a>
+          <a href="/admin/agent-db/list" class="d-block py-2 px-3 text-gray-300 rounded mb-1 hover:bg-gray-700">Агенты</a>
+          <a href="/admin/chat" class="d-block py-2 px-3 text-white rounded mb-1" style="background: #028090; font-weight: bold;">Чат</a>
+          <button id="newChatBtn" class="w-100 btn btn-primary mt-3">+ Новый чат</button>
+          <div class="mt-4">
+            <h6 class="text-white mb-2">История</h6>
+            <div id="sessionsList" style="max-height: 300px; overflow-y: auto;">
+              <p class="text-gray-400 text-sm">Нет сохранённых чатов</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Chat -->
+        <div class="chat-main">
+          <div class="chat-header">
+            <i class="fas fa-robot text-lg" style="color: #028090;"></i>
+            <span>Чат с AI-агентом</span>
+            <span class="online-indicator">
+              <span class="online-dot"></span>
+              AI-агент онлайн
+            </span>
+          </div>
+
+          <div class="chat-messages" id="messagesContainer">
+            <div class="message message-assistant">
+              Добро пожаловать в MAKO AI Ecosystem!<br>
+              Я AI-агент, готовый помочь с разработкой, архитектурой и бизнес-задачами.
+            </div>
+          </div>
+
+          <div class="chat-input">
+            <textarea id="messageInput" placeholder="Введите сообщение... (Shift+Enter для новой строки)"></textarea>
+            <button id="sendButton">Отправить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // JS оставляем здесь (в шаблоне), т.к. он зависит от DOM
+  let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
+  let currentSessionId = null;
+
+  function renderSessions() {
+    const list = document.getElementById('sessionsList');
+    if (sessions.length === 0) {
+      list.innerHTML = '<p class="text-gray-400 text-sm">Нет сохранённых чатов</p>';
+      return;
+    }
+    list.innerHTML = sessions.map(s => `
+      <div class="p-2 rounded cursor-pointer hover:bg-gray-100" 
+           onclick="loadSession('${s.id}')"
+           style="background: ${s.id === currentSessionId ? '#028090' : 'transparent'}; color: ${s.id === currentSessionId ? 'white' : 'inherit'};">
+        <div class="font-medium text-sm truncate">${s.title}</div>
+        <div class="text-xs opacity-75">${new Date(s.updatedAt).toLocaleString('ru-RU')}</div>
+      </div>
+    `).join('');
+  }
+
+  function newChat() {
+    currentSessionId = null;
+    document.getElementById('messagesContainer').innerHTML = `
+      <div class="message message-assistant">
+        Добро пожаловать в MAKO AI Ecosystem!<br>
+        Я AI-агент, готовый помочь с разработкой, архитектурой и бизнес-задачами.
+      </div>`;
+    document.querySelector('.chat-header span:first-child').textContent = 'Новый чат';
+    renderSessions();
+  }
+
+  function loadSession(id) {
+    const s = sessions.find(x => x.id === id);
+    if (!s) return;
+    currentSessionId = id;
+    document.querySelector('.chat-header span:first-child').textContent = s.title;
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = s.messages.map(m => `
+      <div class="message ${m.role === 'user' ? 'message-user' : 'message-assistant'}">
+        ${m.content}
+      </div>
+    `).join('');
+    renderSessions();
+    scrollToBottom();
+  }
+
+  function saveSession(title, messages) {
+    if (!currentSessionId) {
+      currentSessionId = Date.now().toString();
+      sessions.unshift({
+        id: currentSessionId,
+        title: title || 'Новый чат',
+        messages: messages,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      const s = sessions.find(x => x.id === currentSessionId);
+      if (s) {
+        s.messages = messages;
+        s.updatedAt = new Date().toISOString();
+      }
+    }
+    localStorage.setItem('chatSessions', JSON.stringify(sessions));
+    renderSessions();
+  }
+
+  function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+    if (!content) return;
+
+    // Добавляем сообщение пользователя
+    const userMsg = `<div class="message message-user">${content}</div>`;
+    document.getElementById('messagesContainer').insertAdjacentHTML('beforeend', userMsg);
+    input.value = '';
+    scrollToBottom();
+
+    // Сохраняем сессию
+    const messages = getMessages();
+    messages.push({ role: 'user', content });
+    saveSession(content.slice(0, 50), messages);
+
+    // Отправка на сервер
+    const sendButton = document.getElementById('sendButton');
+    sendButton.disabled = true;
+    sendButton.textContent = 'Отправляю...';
+
+    try {
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'makotools',
+          stream: true,
+          messages: messages
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
+
+      // Добавляем placeholder
+      const assistantMsgDiv = document.createElement('div');
+      assistantMsgDiv.className = 'message message-assistant';
+      assistantMsgDiv.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Думаю...';
+      document.getElementById('messagesContainer').appendChild(assistantMsgDiv);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || '';
+              assistantContent += delta;
+              assistantMsgDiv.innerHTML = marked.parse(assistantContent) || '<i class="fas fa-spinner fa-spin mr-2"></i> Думаю...';
+              scrollToBottom();
+            } catch (e) {
+              console.error('Parse error:', e);
+
+            }
+          }
+        }
+      }
+
+      messages.push({ role: 'assistant', content: assistantContent });
+      saveSession(messages[0].content.slice(0, 50), messages);
+
+    } catch (error) {
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML += `<div class="message message-assistant" style="background:#fee2e2;color:#991b1b;">Ошибка: ${error.message}</div>`;
+    } finally {
+      sendButton.disabled = false;
+      sendButton.textContent = 'Отправить';
+    }
+  }
+
+  function getMessages() {
+    const msgs = [];
+    document.querySelectorAll('#messagesContainer .message').forEach(el => {
+      const isUser = el.classList.contains('message-user');
+      const content = el.textContent;
+      msgs.push({ role: isUser ? 'user' : 'assistant', content });
+    });
+    return msgs;
+  }
+
+  // Инициализация
+  document.getElementById('sendButton').addEventListener('click', sendMessage);
+  document.getElementById('messageInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  document.getElementById('newChatBtn').addEventListener('click', newChat);
+  window.addEventListener('load', scrollToBottom);
+  renderSessions();
+</script>
+{% endblock %}

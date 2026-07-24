@@ -1,0 +1,30 @@
+id: ai_engineer
+display_name: "AI Engineer Agent"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "ai_engineer.jinja2"
+  role: "AI Engineer Agent"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "AI"
+    checks:
+      - "архитектуру AI-системы, корректность использования LLM, RAG, MCP, LangGraph, безопасность, масштабируемость и отсутствие логических ошибок"

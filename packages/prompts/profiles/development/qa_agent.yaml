@@ -1,0 +1,22 @@
+id: qa_agent
+display_name: "QA Agent"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "qa_agent.jinja2"
+  role: "QA Agent"
+
+capabilities:
+  tools:
+    - read_file
+    - write_file
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

@@ -1,0 +1,27 @@
+id: prompt_engineer
+display_name: "Prompt Engineer Agent"
+contour: ai_ops
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "prompt_engineer.jinja2"
+  role: "Prompt Engineer Agent"
+
+capabilities:
+  tools:
+    - read_file
+    - write_file
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "two_agent"
+  model: "deepseek/deepseek-v4-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "deepseek/deepseek-v4-pro"
+    domain: "Prompt"
+    checks:
+      - "полноту инструкций, отсутствие противоречий, эффективность, стоимость исполнения, устойчивость к неоднозначным запросам и соответствие роли агента"

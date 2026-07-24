@@ -1,0 +1,21 @@
+id: knowledge_agent
+display_name: "Knowledge Agent"
+contour: research
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "knowledge_agent.jinja2"
+  role: "Knowledge Agent"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

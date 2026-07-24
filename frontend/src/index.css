@@ -1,0 +1,253 @@
+@import "tailwindcss";
+
+/* ═══ Палитра: Mako Dafault (root) ═══ */
+:root {
+   /* Поверхности */
+  --bg-primary: #f5f9fc;
+  --bg-secondary: #edf4f8;
+  --bg-sidebar: #01295A;
+  --bg-card: #ffffff;
+  --bg-input: #f8fbfd;
+
+  /* Чат */
+  --bg-message-user: #d7f2f5;
+  --bg-message-assistant: #ffffff;
+
+  /* Кнопки */
+  --bg-button: #028090;
+  --bg-button-hover: #026c79;
+
+  /* Текст */
+  --text-primary: #1b2430;
+  --text-secondary: #5b6775;
+  --text-muted: #95a1af;
+
+  /* Границы */
+  --border-primary: #d7e2ea;
+  --border-hover: #028090;
+
+  /* Акценты */
+  --accent: #FFB30F;
+  --accent-hover: #e89e00;
+
+  /* Статусы */
+  --status-online: #849324;
+  --status-offline: #FD151B;
+  --status-warning: #FFB30F;
+  --status-neutral: #94a3b8;
+}
+
+[data-theme="ocean-dark"] {
+    /* ==========================
+     Основные поверхности
+     ========================== */
+
+  --bg-primary: #09131D;
+  --bg-secondary: #0D1B28;
+  --bg-sidebar: #01295A;
+  --bg-card: #142331;
+  --bg-input: #192B3A;
+
+  /* ==========================
+     Чат
+     ========================== */
+
+  --bg-message-user: rgba(2, 128, 144, .18);
+  --bg-message-assistant: #172735;
+
+  /* ==========================
+     Кнопки
+     ========================== */
+
+  --bg-button: #681F1F;
+  --bg-button-hover: #8A2929;
+
+  /* ==========================
+     Текст
+     ========================== */
+
+  --text-primary: #EDF5FA;
+  --text-secondary: rgba(237,245,250,.72);
+  --text-muted: rgba(237,245,250,.38);
+
+  /* ==========================
+     Границы
+     ========================== */
+
+  --border-primary: rgba(255,255,255,.08);
+  --border-hover: rgba(2,128,144,.55);
+
+  /* ==========================
+     Акценты
+     ========================== */
+
+  --accent: #01295A;
+  --accent-hover: #1A4A85;
+
+  /* ==========================
+     Статусы
+     ========================== */
+
+  --status-online: #849324;
+  --status-offline: #FD151B;
+  --status-warning: #FFB30F;
+  --status-neutral: #8E99A8;
+}
+
+
+/* ═══ Палитра: Moody Sunset ═══ */
+[data-theme="moody-sunset"] {
+  --bg-primary: #003f5c;
+  --bg-secondary: #00304a;
+  --bg-sidebar: #003550;
+  --bg-input: #00304a;
+  --bg-message-user: rgba(88, 80, 141, 0.5);
+  --bg-message-assistant: #003550;
+  --bg-card: #003550;
+  --bg-button: #58508d;
+  --bg-button-hover: #6a62a0;
+  --text-primary: #ffa600;
+  --text-secondary: rgba(255, 166, 0, 0.6);
+  --text-muted: rgba(255, 166, 0, 0.3);
+  --border-primary: rgba(88, 80, 141, 0.5);
+  --border-hover: rgba(255, 166, 0, 0.4);
+  --accent: #bc5090;
+  --accent-hover: #d060a0;
+  --status-online: #4ade80;
+  --status-offline: #ff6361;
+  --status-warning: #ffa600;
+  --status-neutral: #9ca3af;
+}
+
+/* ═══ Палитра: Forest Breeze (светлая) ═══ */
+[data-theme="forest-breeze"] {
+  --bg-primary: #f1ddbf;
+  --bg-secondary: #e8d0aa;
+  --bg-sidebar: #f1ddbf;
+  --bg-input: #f5e6cc;
+  --bg-message-user: rgba(146, 186, 146, 0.4);
+  --bg-message-assistant: #f5e6cc;
+  --bg-card: #f5e6cc;
+  --bg-button: #78938a;
+  --bg-button-hover: #6a857c;
+  --text-primary: #525e75;
+  --text-secondary: rgba(82, 94, 117, 0.6);
+  --text-muted: rgba(82, 94, 117, 0.3);
+  --border-primary: rgba(120, 147, 138, 0.5);
+  --border-hover: rgba(82, 94, 117, 0.4);
+  --accent: #92ba92;
+  --accent-hover: #7da87d;
+  --status-online: #4ade80;
+  --status-offline: #f87171;
+  --status-warning: #facc15;
+  --status-neutral: #9ca3af;
+}
+
+/* ═══ Палитра: Clay and Sea ═══ */
+[data-theme="clay-and-sea"] {
+  --bg-primary: #004040;
+  --bg-secondary: #003535;
+  --bg-sidebar: #003838;
+  --bg-input: #003535;
+  --bg-message-user: rgba(199, 82, 42, 0.4);
+  --bg-message-assistant: #003838;
+  --bg-card: #003838;
+  --bg-button: #008585;
+  --bg-button-hover: #009999;
+  --text-primary: #fbf2c4;
+  --text-secondary: rgba(251, 242, 196, 0.6);
+  --text-muted: rgba(251, 242, 196, 0.3);
+  --border-primary: rgba(0, 133, 133, 0.5);
+  --border-hover: rgba(251, 242, 196, 0.4);
+  --accent: #c7522a;
+  --accent-hover: #d9633b;
+  --status-online: #74a892;
+  --status-offline: #c7522a;
+  --status-warning: #e5c185;
+  --status-neutral: #9ca3af;
+}
+
+/* ═══ Палитра: Viewing ═══ */
+[data-theme="viewing"] {
+  --bg-primary: #413344;
+  --bg-secondary: #362a39;
+  --bg-sidebar: #3a2e3d;
+  --bg-input: #362a39;
+  --bg-message-user: rgba(166, 98, 168, 0.4);
+  --bg-message-assistant: #3a2e3d;
+  --bg-card: #3a2e3d;
+  --bg-button: #614c65;
+  --bg-button-hover: #725d76;
+  --text-primary: #91bcdd;
+  --text-secondary: rgba(145, 188, 221, 0.6);
+  --text-muted: rgba(145, 188, 221, 0.3);
+  --border-primary: rgba(97, 76, 101, 0.5);
+  --border-hover: rgba(145, 188, 221, 0.4);
+  --accent: #a662a8;
+  --accent-hover: #b873ba;
+  --status-online: #8a9a65;
+  --status-offline: #b65d54;
+  --status-warning: #b6b975;
+  --status-neutral: #9ca3af;
+}
+
+/* ═══ Палитра: Blue ═══ */
+[data-theme="blue-tone"] {
+  --bg-primary: ##d1dbe4;
+  --bg-secondary: ##a3b7ca;
+  --bg-sidebar: ##194a7a;
+  --bg-input: ##194a7a;
+  --bg-message-user: #a3b7ca;
+  --bg-message-assistant: #7593af;
+  --bg-card: #476f95;
+  --bg-button: ##476f95;
+  --bg-button-hover: ##7593af;
+  --text-primary: ##003f5c;
+  --text-secondary: #2c4875;
+  --text-muted: #8a508f;
+  --border-primary: #00202e;
+  --border-hover: #003f5c;
+  --accent: #c7522a;
+  --accent-hover: #d9633b;
+  --status-online: #008585;
+  --status-offline: #ff6361;
+  --status-warning: #ff8531;
+  --status-neutral: #74a892;
+}
+
+/* ═══ Base ═══ */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overscroll-behavior: none;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+@keyframes fadeInLogo {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeInLogo { animation: fadeInLogo 3s ease-out forwards; }
+.animate-fadeInUp { opacity: 0; animation: fadeInUp 0.8s ease-out forwards; }
+.animate-fadeIn { opacity: 0; animation: fadeIn 0.6s ease-out forwards; }
+.delay-1500 { animation-delay: 1.5s; }
+.delay-2000 { animation-delay: 2.0s; }
+.delay-2500 { animation-delay: 2.5s; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-hover); }
+
+.mermaid-container svg { max-width: 100%; height: auto; }

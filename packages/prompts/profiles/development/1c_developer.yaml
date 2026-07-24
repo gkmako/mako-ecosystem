@@ -1,0 +1,30 @@
+id: 1c_developer
+display_name: "1C Developer"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "1c_developer.jinja2"
+  role: "1C Developer"
+
+capabilities:
+  tools:
+    - search_knowledge_base
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "1C"
+    checks:
+      - "соответствие платформе 1С, корректность бизнес-логики, производительность, совместимость и соответствие найденной документации"

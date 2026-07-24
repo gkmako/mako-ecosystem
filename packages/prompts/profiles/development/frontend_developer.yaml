@@ -1,0 +1,29 @@
+id: frontend_developer
+display_name: "Frontend Developer"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "frontend_developer.jinja2"
+  role: "Frontend Developer"
+
+capabilities:
+  tools:
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "Frontend"
+    checks:
+      - "корректность компонентов, UX, производительность, доступность, адаптивность и отсутствие регрессий"

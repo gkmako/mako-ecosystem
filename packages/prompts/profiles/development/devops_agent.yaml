@@ -1,0 +1,29 @@
+id: devops_agent
+display_name: "DevOps Agent"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "devops_agent.jinja2"
+  role: "DevOps Agent"
+
+capabilities:
+  tools:
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "DevOps"
+    checks:
+      - "корректность инфраструктуры, отказоустойчивость, безопасность, производительность, совместимость и возможные риски"

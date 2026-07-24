@@ -1,0 +1,21 @@
+id: product_manager
+display_name: "Product Manager Agent"
+contour: business
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "product_manager.jinja2"
+  role: "Product Manager Agent"
+
+capabilities:
+  tools:
+    - search_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

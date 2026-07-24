@@ -1,0 +1,30 @@
+id: image_generator
+display_name: "Image Generator"
+contour: image
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "image_generator.jinja2"
+  role: "Image Generator"
+
+capabilities:
+  tools:
+    - generate_image
+    - edit_image
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "one_agent"
+  model: "recraft/recraft-v4.1-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "google/gemini-2.5-flash-lite"
+    domain: "Image Generation"
+    checks:
+      - "соответствие изображения запросу пользователя"
+      - "качество и эстетика результата"
+      - "корректность выбора стиля и размера"

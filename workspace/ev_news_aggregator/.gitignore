@@ -1,0 +1,31 @@
+# Байт-код Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Распределенные файлы данных
+*.log
+*.pot
+
+# Виртуальные среды
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Данные приложения
+data/
+logs/
+*.db
+
+# Конфигурационные файлы
+.env

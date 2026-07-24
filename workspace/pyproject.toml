@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "ev_news_scraper"
+version = "0.1.0"
+description = "A Python-based news scraper for electric vehicles (EV) with support for async operations, data parsing, and storage."
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.9.0"
+beautifulsoup4 = "^4.12.0"
+lxml = "^4.9.0"
+feedparser = "^6.0.0"
+sqlalchemy = "^2.0.0"
+aiosqlite = "^0.17.0"
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+loguru = "^0.7.0"
+tenacity = "^8.2.0"
+APScheduler = "^3.10.0"
+pyyaml = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

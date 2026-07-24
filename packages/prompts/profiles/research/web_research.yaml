@@ -1,0 +1,31 @@
+id: web_research
+display_name: "Web Research Agent"
+contour: research
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "web_research.jinja2"
+  role: "Web Research Agent"
+
+capabilities:
+  tools:
+    - web_search
+    - save_to_memory
+  allow_rag: false
+  allow_web: true
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "deepseek/deepseek-v4-pro"
+  temperature: 0.1
+  max_retries: 2
+  reviewer:
+    model: "google/gemini-3.5-flash-lite"
+    domain: "Research"
+    checks:
+      - "вызван ли web_search (минимум 1 раз)"
+      - "полнота поиска (2+ запроса приветствуется)"
+      - "качество источников (авторитетные сайты, актуальные даты)"
+      - "наличие цитирования источников со ссылками"
+      - "соответствие ответа запросу пользователя"

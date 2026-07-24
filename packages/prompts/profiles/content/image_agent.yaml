@@ -1,0 +1,21 @@
+id: image_agent
+display_name: "Image Agent"
+contour: content
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "image_agent.jinja2"
+  role: "Image Agent"
+
+capabilities:
+  tools:
+    []
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "google/gemini-3.1-flash-image"
+  temperature: 0.2
+  max_retries: 2

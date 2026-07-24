@@ -1,0 +1,27 @@
+id: workflow_agent
+display_name: "Workflow Agent"
+contour: architecture
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "workflow_agent.jinja2"
+  role: "Workflow Agent"
+
+capabilities:
+  tools:
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3.7-max"
+    domain: "Workflow"
+    checks:
+      - "полноту, логическую последовательность, отсутствие противоречий, лишних шагов и узких мест"

@@ -1,0 +1,33 @@
+id: architect
+display_name: "System Architect"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "architect.jinja2"
+  role: "Senior System Architect (Expert in Databases, APIs, Microservices, Infrastructure)"
+
+capabilities:
+  tools:
+    - get_project_structure
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: true
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "openai/gpt-4o-mini"
+  temperature: 0.2
+  max_retries: 2
+
+  reviewer:
+    model: "openai/gpt-4o-mini"
+    domain: "architecture"
+    checks: 
+      - architecture_quality
+      - scalability
+      - security

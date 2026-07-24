@@ -1,0 +1,23 @@
+id: sales_agent
+display_name: "Sales Agent"
+contour: business
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "sales_agent.jinja2"
+  role: "Sales Agent"
+
+capabilities:
+  tools:
+    - get_project_structure
+    - get_company_rate
+    - search_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

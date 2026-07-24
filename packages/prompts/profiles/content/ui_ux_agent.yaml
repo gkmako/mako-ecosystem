@@ -1,0 +1,26 @@
+id: ui_ux_agent
+display_name: "UI/UX Agent"
+contour: content
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "ui_ux_agent.jinja2"
+  role: "UI/UX Agent"
+
+capabilities:
+  tools:
+    - search_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "two_agent"
+  model: "deepseek/deepseek-v4-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "deepseek/deepseek-v4-pro"
+    domain: "UI/UX"
+    checks:
+      - "удобство использования, последовательность пользовательских сценариев, доступность, соответствие бизнес-задачам и целостность интерфейса"

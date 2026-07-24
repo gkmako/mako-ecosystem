@@ -1,0 +1,22 @@
+id: orchestrator
+display_name: "Orchestrator"
+contour: management
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "orchestrator.jinja2"
+  role: "Orchestrator"
+
+capabilities:
+  tools:
+    - delegate_to_agent
+    - search_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

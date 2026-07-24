@@ -1,0 +1,35 @@
+id: architect
+display_name: "Architect Agent"
+contour: architecture
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "architect.jinja2"
+  role: "Architect Agent"
+
+capabilities:
+  tools:
+    - check_tech_compatibility
+    - get_project_structure
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "deepseek/deepseek-v4-pro"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "deepseek/deepseek-v4-pro"
+    domain: "Architecture"
+    checks:
+      - соответствие требованиям
+      - совместимость технологий
+      - масштабируемость
+      - безопасность
+      - отказоустойчивость
+      - сложность сопровождения
+      - наличие архитектурных рисков

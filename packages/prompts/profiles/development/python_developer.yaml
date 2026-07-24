@@ -1,0 +1,30 @@
+id: python_developer
+display_name: "Python Developer"
+contour: development
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "python_developer.jinja2"
+  role: "Python Developer"
+
+capabilities:
+  tools:
+    - get_project_structure
+    - read_file
+    - write_file
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3-coder"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3-coder"
+    domain: "Python"
+    checks:
+      - "соответствие требованиям, корректность логики, безопасность, производительность, стиль и возможные побочные эффекты"

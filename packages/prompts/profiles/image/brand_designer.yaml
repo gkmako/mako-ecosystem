@@ -1,0 +1,30 @@
+id: brand_designer
+display_name: "Brand Designer"
+contour: image
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "brand_designer.jinja2"
+  role: "Brand Designer"
+
+capabilities:
+  tools:
+    - generate_vector
+    - generate_image
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "one_agent"
+  model: "recraft/recraft-v4.1-pro-vector"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "google/gemini-2.5-flash-lite"
+    domain: "Brand Design"
+    checks:
+      - "уникальность и узнаваемость дизайна"
+      - "соответствие бренду и стилю"
+      - "масштабируемость (векторный формат)"

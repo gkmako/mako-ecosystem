@@ -1,0 +1,21 @@
+id: marketing_strategist
+display_name: "Marketing Strategist"
+contour: business
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "marketing_strategist.jinja2"
+  role: "Marketing Strategist"
+
+capabilities:
+  tools:
+    - web_search
+  allow_rag: false
+  allow_web: true
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

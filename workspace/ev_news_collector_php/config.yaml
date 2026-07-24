@@ -1,0 +1,34 @@
+sources:
+  - https://tass.ru/rss/v2.xml
+  - https://www.gazeta.ru/export/rss/lifestyle.xml
+  - https://www.kommersant.ru/RSS/news.xml
+  - https://www.rbc.ru/static/news.rss
+  - https://www.vedomosti.ru/rss/news
+
+keywords:
+  - электромобиль
+  - электрокар
+  - EV
+  - зарядная станция
+  - ЭЗС
+  - Evolute
+  - Москвич
+  - Атом
+  - Zeekr
+  - BYD
+  - Avatr
+  - Li Ideal
+  - Тесла
+
+storage:
+  db_path: news.db
+  csv_export_path: news_digest.csv
+  json_export_path: news_digest.json
+
+digest:
+  template_dir: templates
+  html_output: digest.html
+  markdown_output: digest.md
+
+scheduler:
+  interval_minutes: 30

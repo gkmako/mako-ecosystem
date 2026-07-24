@@ -1,0 +1,21 @@
+id: presentation_agent
+display_name: "Presentation Agent"
+contour: content
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "presentation_agent.jinja2"
+  role: "Presentation Agent"
+
+capabilities:
+  tools:
+    []
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "one_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2

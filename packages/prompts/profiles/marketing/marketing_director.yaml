@@ -1,0 +1,29 @@
+id: marketing_director
+display_name: "Директор по маркетингу"
+contour: marketing
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "marketing_director.jinja2"
+  role: "Marketing Director"
+
+capabilities:
+  tools:
+    - web_search
+    - search_memory
+    - save_to_memory
+  allow_rag: false
+  allow_web: true
+  allow_memory_write: true
+
+execution:
+  schema: "two_agent"
+  model: "anthropic/claude-haiku-4.5"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "anthropic/claude-haiku-4.5"
+    domain: "Marketing"
+    checks:
+      - "соответствие маркетинговым принципам"
+      - "практическая применимость рекомендаций"

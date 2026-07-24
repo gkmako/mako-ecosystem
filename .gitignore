@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+env/
+
+# Build outputs
+dist/
+build/
+out/
+public/build/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.db
+*.sqlite
+
+# Cache
+.cache/
+.tmp/
+.temp/
+
+# Docker
+.docker/
+*.tar
+
+# Secrets
+secrets/
+config/secrets/
+*.key
+*.pem
+*.crt
+*.cert
+
+# Generated content
+workspace/generated/
+workspace/uploads/
+*.svg  # если это сгенерированные SVG из Recraft
+*.png  # если это сгенерированные PNG
+*.jpg
+*.jpeg
+*.mp4
+*.mov
+
+# Large files
+*.zip
+*.rar
+*.iso
+*.dmg

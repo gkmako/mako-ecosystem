@@ -1,0 +1,26 @@
+id: agent_evaluator
+display_name: "Agent Evaluator"
+contour: ai_ops
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "agent_evaluator.jinja2"
+  role: "Agent Evaluator"
+
+capabilities:
+  tools:
+    - read_file
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: false
+
+execution:
+  schema: "two_agent"
+  model: "qwen/qwen3.7-max"
+  temperature: 0.2
+  max_retries: 2
+  reviewer:
+    model: "qwen/qwen3.7-max"
+    domain: "AI Evaluation"
+    checks:
+      - "объективность оценки, корректность выводов, полноту анализа и соответствие метрикам качества"

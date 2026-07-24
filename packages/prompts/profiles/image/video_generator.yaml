@@ -1,0 +1,29 @@
+id: video_generator
+display_name: "Video Generator"
+contour: image
+
+prompt:
+  base_template: "base_developer.jinja2"
+  agent_template: "video_generator.jinja2"
+  role: "Video Generator"
+
+capabilities:
+  tools:
+    - generate_video
+    - save_to_memory
+  allow_rag: false
+  allow_web: false
+  allow_memory_write: true
+
+execution:
+  schema: "one_agent"
+  model: "kwaivgi/kling-v3.0-pro"
+  temperature: 0.2
+  max_retries: 1
+  reviewer:
+    model: "google/gemini-2.5-flash-lite"
+    domain: "Video Generation"
+    checks:
+      - "соответствие видео запросу"
+      - "качество движения и плавность"
+      - "корректность выбора длительности"
