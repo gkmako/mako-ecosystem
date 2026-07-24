@@ -5,11 +5,13 @@ node_modules/
 venv/
 env/
 
-# Build outputs
-dist/
+# Python build artifacts
+__pycache__/
+*.py[oc]
 build/
-out/
-public/build/
+dist/
+wheels/
+*.egg-info
 
 # Environment variables
 .env
@@ -54,7 +56,7 @@ config/secrets/
 *.crt
 *.cert
 
-# Generated content
+# Generated content (exclude specific types)
 workspace/generated/
 workspace/uploads/
 *.svg  # если это сгенерированные SVG из Recraft
@@ -69,3 +71,21 @@ workspace/uploads/
 *.rar
 *.iso
 *.dmg
+
+# Temporary files
+tmp/
+temp/
+
+# EXCLUDE these important directories (include in repo):
+!frontend/
+!packages/
+!docker/
+!src/
+!public/
+!package.json
+!requirements.txt
+!Dockerfile
+!docker-compose.yml
+!alembic/
+!uv.lock
+!pyproject.toml
