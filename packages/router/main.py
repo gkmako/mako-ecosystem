@@ -26,6 +26,7 @@ from packages.router.chat_view import ChatView
 from packages.router.openai_schemas import ChatCompletionRequest
 from packages.router.seed import seed_agents, seed_model_defaults, seed_prompts
 from packages.router.auth import require_admin
+from packages.router.mermaid import mermaid_router
 from packages.agents.tools_registry import TOOLS_REGISTRY
 from packages.langgraph_app.graph import get_compiled_graph
 from packages.shared.config import settings
@@ -185,6 +186,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Makotools Router Service", version="1.0.0 (LangGraph)", lifespan=lifespan)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+# Mermaid ELK rendering endpoint
+app.include_router(mermaid_router)
 
 # Статика для сгенерированных изображений
 import os as _os

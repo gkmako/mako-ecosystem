@@ -5,6 +5,9 @@ import tempfile
 import os
 import json
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 mermaid_router = APIRouter(prefix="/api/mermaid", tags=["mermaid"])
 
@@ -37,24 +40,41 @@ async def render_mermaid_with_elk(request: MermaidRenderRequest):
         with open(config_file, 'w') as f:
             json.dump(elk_config, f)
         
+        # Puppeteer config для chromium
+        puppeteer_config = {
+            "executablePath": "/usr/bin/chromium",
+            "args": [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu"
+            ]
+        }
+        puppeteer_file = input_file.replace('.mmd', '.puppeteer.json')
+        with open(puppeteer_file, 'w') as f:
+            json.dump(puppeteer_config, f)
+        
         # mmdc CLI
         proc = await asyncio.create_subprocess_exec(
             'mmdc',
             '-i', input_file,
             '-o', output_file,
             '-c', config_file,
+            '-p', puppeteer_file,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
         
-        # Cleanup input/config
-        for f in (input_file, config_file):
+        # Cleanup
+        for f in (input_file, config_file, puppeteer_file):
             if os.path.exists(f):
                 os.unlink(f)
         
         if proc.returncode != 0:
-            raise HTTPException(status_code=500, detail=stderr.decode())
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            logger.error(f"mmdc failed: {error_msg}")
+            raise HTTPException(status_code=500, detail=error_msg)
         
         with open(output_file, 'r') as f:
             svg_content = f.read()
@@ -65,6 +85,7 @@ async def render_mermaid_with_elk(request: MermaidRenderRequest):
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Rendering timeout")
     except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="mmdc CLI not found. Install: npm install -g @mermaid-js/mermaid-cli")
+        raise HTTPException(status_code=500, detail="mmdc CLI not found")
     except Exception as e:
+        logger.error(f"Mermaid render error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
