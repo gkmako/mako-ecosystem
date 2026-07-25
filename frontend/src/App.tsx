@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import Chat from './components/Chat';
 import Admin from './components/Admin';
+import DiagramStudio from './components/DiagramStudio';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -18,6 +19,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/diagram-studio" element={<DiagramStudio />} />
       </Routes>
     </BrowserRouter>
   );

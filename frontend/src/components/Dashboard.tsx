@@ -227,6 +227,15 @@ const Dashboard: React.FC = () => {
             <span className="text-[var(--text-muted)] text-xs sm:text-sm mt-1 sm:mt-2 block">Запуск и диалог</span>
           </Link>
         )}
+    {/* Diagram Studio — ВСЕГДА видима, без ролевой проверки */}
+          <Link
+            to="/diagram-studio"
+            className="group w-full sm:w-auto px-8 sm:px-12 py-6 sm:py-8 bg-[var(--bg-button)]/30 border-2 border-[var(--border-primary)] rounded-2xl text-center hover:bg-[var(--bg-button)]/60 hover:border-[var(--border-hover)] hover:scale-105 transition-all shadow-xl sm:min-w-[240px]"
+          >
+            <i className="fa-solid fa-diagram-project text-3xl sm:text-4xl text-[var(--text-primary)] mb-3 sm:mb-4 block group-hover:scale-110 transition-transform" />
+            <span className="text-[var(--text-primary)] text-lg sm:text-xl font-bold block">Diagram Studio</span>
+            <span className="text-[var(--text-muted)] text-xs sm:text-sm mt-1 sm:mt-2 block">Mermaid-диаграммы + PDF</span>
+          </Link>
       </div>
 
       <main className="flex-1 flex justify-center p-4 sm:p-8 mt-6 sm:mt-10 animate-fadeInUp delay-2500">
