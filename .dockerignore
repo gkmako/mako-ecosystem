@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Workspace (там большие данные)
+workspace/
+
+# Данные
+data/
+*.db
+*.sqlite
+
+# IDE
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Docker
+docker/
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Логи
+*.log
+logs/
+
+# Кэш uv
+.uv

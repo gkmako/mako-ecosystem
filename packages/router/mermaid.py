@@ -34,7 +34,6 @@ class AdvancedMermaidRenderRequest(BaseModel):
 
 
 def _get_sheet_size_mm(format_name: str, orientation: str) -> tuple[float, float]:
-    """Возвращает (width_mm, height_mm) для заданного формата и ориентации."""
     sizes = {
         "A0": (841, 1189),
         "A1": (594, 841),
@@ -48,14 +47,12 @@ def _get_sheet_size_mm(format_name: str, orientation: str) -> tuple[float, float
         w, h = sizes["A1"]
     else:
         w, h = sizes[format_name]
-
     if orientation == "Landscape":
         w, h = h, w
     return w, h
 
 
 def _write_puppeteer_config(path: str, width_mm: float, height_mm: float) -> None:
-    """Создать puppeteer-конфиг для mmdc (используется только для SVG)."""
     cfg = {
         "executablePath": "/usr/bin/chromium",
         "args": [
@@ -83,7 +80,6 @@ def _write_puppeteer_config(path: str, width_mm: float, height_mm: float) -> Non
 
 
 def _write_mermaid_config(path: str, user_config: dict, use_elk: bool) -> None:
-    """Создать mermaid-конфиг для mmdc."""
     cfg = {
         "theme": user_config.get("theme", "default"),
         "flowchart": {
@@ -100,7 +96,6 @@ def _write_mermaid_config(path: str, user_config: dict, use_elk: bool) -> None:
 
 
 async def _run_mmdc(cmd: list[str], timeout: int = 60) -> None:
-    """Запустить mmdc CLI."""
     logger.info(f"Running: {' '.join(cmd)}")
     proc = await asyncio.create_subprocess_exec(
         *cmd,
@@ -118,37 +113,119 @@ async def _run_mmdc(cmd: list[str], timeout: int = 60) -> None:
         raise HTTPException(status_code=500, detail=msg[:2000])
 
 
+def _parse_svg_size(svg_text: str) -> tuple[float, float]:
+    vb = re.search(r'viewBox\s*=\s*["\']([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)["\']', svg_text)
+    if vb:
+        return float(vb.group(3)), float(vb.group(4))
+    w = re.search(r'<svg[^>]*\bwidth\s*=\s*["\']([\d.]+)', svg_text)
+    h = re.search(r'<svg[^>]*\bheight\s*=\s*["\']([\d.]+)', svg_text)
+    if w and h:
+        return float(w.group(1)), float(h.group(1))
+    return 800.0, 600.0
+
+
 def _ensure_svg_has_dimensions(svg_text: str) -> str:
-    """Добавить явные width/height в SVG и исправить шрифты для WeasyPrint."""
-    # 1. Добавить width/height если их нет
     if 'width="' not in svg_text or 'height="' not in svg_text:
-        vb_match = re.search(r'viewBox\s*=\s*["\']([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)["\']', svg_text)
-        if vb_match:
-            w = vb_match.group(3)
-            h = vb_match.group(4)
+        vb = re.search(r'viewBox\s*=\s*["\']([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)["\']', svg_text)
+        if vb:
+            w, h = vb.group(3), vb.group(4)
             svg_text = re.sub(
                 r'<svg([^>]*)>',
                 f'<svg\\1 width="{w}" height="{h}">',
                 svg_text,
                 count=1
             )
-    
-    # 2. Заменить шрифты Mermaid на системные (Liberation Sans = Arial-подобный)
-    svg_text = svg_text.replace('"trebuchet ms"', '"Liberation Sans"')
-    svg_text = svg_text.replace('trebuchet ms', 'Liberation Sans')
-    svg_text = svg_text.replace('verdana', 'sans-serif')
-    
     return svg_text
 
 
 def _cleanup(*files: str | None) -> None:
-    """Удалить временные файлы."""
     for f in files:
         if f and os.path.exists(f):
             try:
                 os.unlink(f)
             except OSError:
                 pass
+
+
+async def _render_pdf_with_playwright(
+    svg_content: str,
+    sheet_w_mm: float,
+    sheet_h_mm: float,
+    margin_mm: float,
+    fit_to_page: bool,
+) -> bytes:
+    """Рендерит SVG в PDF через Playwright + системный chromium.
+    
+    Playwright = тот же браузер → рендерит foreignObject корректно.
+    """
+    from playwright.async_api import async_playwright
+
+    if fit_to_page:
+        svg_style = "max-width: 100%; max-height: 100%; width: auto; height: auto;"
+    else:
+        svg_style = "width: auto; height: auto;"
+
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page {{
+    size: {sheet_w_mm}mm {sheet_h_mm}mm;
+    margin: {margin_mm}mm;
+}}
+html, body {{
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}}
+svg {{
+    {svg_style}
+    display: block;
+}}
+</style>
+</head>
+<body>
+{svg_content}
+</body>
+</html>"""
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            executable_path="/usr/bin/chromium",
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-extensions",
+                "--no-first-run",
+            ],
+            headless=True,
+        )
+        try:
+            page = await browser.new_page()
+            await page.set_content(html_content, wait_until="networkidle")
+            pdf_bytes = await page.pdf(
+                width=f"{int(sheet_w_mm)}mm",
+                height=f"{int(sheet_h_mm)}mm",
+                margin={
+                    "top": f"{int(margin_mm)}mm",
+                    "right": f"{int(margin_mm)}mm",
+                    "bottom": f"{int(margin_mm)}mm",
+                    "left": f"{int(margin_mm)}mm",
+                },
+                print_background=True,
+                prefer_css_page_size=False,
+            )
+            return pdf_bytes
+        finally:
+            await browser.close()
 
 
 @mermaid_router.post("/render-elk")
@@ -190,9 +267,7 @@ async def render_mermaid_with_elk(request: MermaidRenderRequest) -> Response:
 
 @mermaid_router.post("/render-pdf")
 async def render_mermaid_to_pdf(request: MermaidRenderRequest) -> Response:
-    """
-    Legacy endpoint. Renders PDF with A1 format using WeasyPrint.
-    """
+    """Legacy endpoint. Renders PDF with A1 sheet using Playwright."""
     files_to_cleanup = []
     try:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
@@ -220,52 +295,16 @@ async def render_mermaid_to_pdf(request: MermaidRenderRequest) -> Response:
         with open(svg_file, "r", encoding="utf-8") as f:
             svg_content = f.read()
 
-        # Обеспечиваем наличие width/height и исправляем шрифты
         svg_content = _ensure_svg_has_dimensions(svg_content)
 
-        # Используем WeasyPrint для конвертации SVG → PDF
-        from weasyprint import HTML
-        
-        html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-@page {{
-    size: 594mm 841mm;
-    margin: 10mm;
-}}
-body {{
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
-}}
-svg {{
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-}}
-svg text, svg tspan, svg foreignObject {{
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-}}
-svg foreignObject div, svg foreignObject span, svg foreignObject p {{
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-    margin: 0;
-    padding: 0;
-}}
-</style>
-</head>
-<body>
-{svg_content}
-</body>
-</html>"""
-
-        pdf_bytes = HTML(string=html_content).write_pdf()
+        # Playwright генерирует PDF с точным размером A1
+        pdf_bytes = await _render_pdf_with_playwright(
+            svg_content=svg_content,
+            sheet_w_mm=594,
+            sheet_h_mm=841,
+            margin_mm=10,
+            fit_to_page=True,
+        )
 
         return Response(
             content=pdf_bytes,
@@ -286,9 +325,7 @@ svg foreignObject div, svg foreignObject span, svg foreignObject p {{
 
 @mermaid_router.post("/render-pdf-advanced")
 async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) -> Response:
-    """
-    Advanced PDF export with user-defined parameters using WeasyPrint.
-    """
+    """Advanced PDF export with user-defined parameters using Playwright."""
     files_to_cleanup = []
     try:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
@@ -296,7 +333,6 @@ async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) 
             input_file = f.name
         files_to_cleanup.append(input_file)
 
-        # Получаем параметры из модального окна
         format_name = request.pdf_options.format if request.pdf_options else "A4"
         orientation = request.pdf_options.orientation if request.pdf_options else "Portrait"
         margin_mm = request.pdf_options.margin_mm if request.pdf_options else 10.0
@@ -305,7 +341,6 @@ async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) 
         sheet_w_mm, sheet_h_mm = _get_sheet_size_mm(format_name, orientation)
         use_elk = request.config.get("layout") == "elk"
 
-        # 1. Рендерим SVG через mmdc
         config_file = input_file.replace(".mmd", ".config.json")
         files_to_cleanup.append(config_file)
         _write_mermaid_config(config_file, request.config, use_elk=use_elk)
@@ -325,57 +360,15 @@ async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) 
         with open(svg_file, "r", encoding="utf-8") as f:
             svg_content = f.read()
 
-        # 2. Обеспечиваем наличие width/height и исправляем шрифты
         svg_content = _ensure_svg_has_dimensions(svg_content)
 
-        # 3. Определяем режим масштабирования
-        if fit_mode == "fit_to_page":
-            svg_style = "max-width: 100%; max-height: 100%; width: auto; height: auto;"
-        else:  # actual_size_with_pagination
-            # Для MVP: один большой лист, если не влезает — всё равно масштабируем
-            svg_style = "max-width: 100%; max-height: 100%; width: auto; height: auto;"
-
-        # 4. Оборачиваем SVG в HTML с CSS @page и шрифтами
-        from weasyprint import HTML
-
-        html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-@page {{
-    size: {sheet_w_mm}mm {sheet_h_mm}mm;
-    margin: {margin_mm}mm;
-}}
-body {{
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
-}}
-svg {{
-    {svg_style}
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-}}
-svg text, svg tspan, svg foreignObject {{
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-}}
-svg foreignObject div, svg foreignObject span, svg foreignObject p {{
-    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
-    margin: 0;
-    padding: 0;
-}}
-</style>
-</head>
-<body>
-{svg_content}
-</body>
-</html>"""
-
-        # 5. Конвертируем HTML → PDF через WeasyPrint
-        pdf_bytes = HTML(string=html_content).write_pdf()
+        pdf_bytes = await _render_pdf_with_playwright(
+            svg_content=svg_content,
+            sheet_w_mm=sheet_w_mm,
+            sheet_h_mm=sheet_h_mm,
+            margin_mm=margin_mm,
+            fit_to_page=(fit_mode == "fit_to_page"),
+        )
 
         return Response(
             content=pdf_bytes,
@@ -396,9 +389,8 @@ svg foreignObject div, svg foreignObject span, svg foreignObject p {{
 
 @mermaid_router.get("/health")
 async def mermaid_health() -> dict:
-    """Проверить доступность mmdc CLI и WeasyPrint."""
     result = {"status": "ok"}
-    
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "mmdc", "--version",
@@ -411,9 +403,17 @@ async def mermaid_health() -> dict:
         result["mmdc_error"] = str(e)
 
     try:
-        from weasyprint import HTML
-        result["weasyprint"] = "ok"
+        from playwright.async_api import async_playwright
+        result["playwright"] = "ok"
     except Exception as e:
-        result["weasyprint_error"] = str(e)
+        result["playwright_error"] = str(e)
+
+    try:
+        if os.path.exists("/usr/bin/chromium"):
+            result["chromium"] = "/usr/bin/chromium"
+        else:
+            result["chromium_error"] = "not found"
+    except Exception as e:
+        result["chromium_error"] = str(e)
 
     return result
