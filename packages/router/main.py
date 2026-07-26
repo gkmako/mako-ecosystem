@@ -34,6 +34,9 @@ from packages.shared.config import settings
 from packages.router.base import Base
 from packages.router.seed import DEFAULT_MODELS
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
 # === RouterAI provider mapping ===
 PROVIDER_MAP = {
     "qwen": "Alibaba",
@@ -183,9 +186,29 @@ async def lifespan(app: FastAPI):
     await memory_engine.dispose()
     await router_engine.dispose()
 
+class SPAFallbackMiddleware(BaseHTTPMiddleware):
+    """Для SPA: если маршрут не API/статика и вернул 404 — отдаём index.html."""
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        if response.status_code == 404:
+            path = request.url.path
+            # Не трогаем API endpoints и статику
+            if not path.startswith("/api/") and not path.startswith("/static/"):
+                # Проверяем что это не запрос к существующему статическому файлу
+                # (например, /assets/xxx.js — уже обработан StaticFiles)
+                if not any(path.startswith(p) for p in ["/assets/", "/favicon", "/icons.svg"]):
+                    return FileResponse(
+                        "/app/frontend/dist/index.html",
+                        media_type="text/html"
+                    )
+        
+        return response
 
 app = FastAPI(title="Makotools Router Service", version="1.0.0 (LangGraph)", lifespan=lifespan)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(SPAFallbackMiddleware)
 
 # Mermaid ELK rendering endpoint
 app.include_router(mermaid_router)
