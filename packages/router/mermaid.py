@@ -17,7 +17,7 @@ mermaid_router = APIRouter(prefix="/api/mermaid", tags=["mermaid"])
 class MermaidRenderRequest(BaseModel):
     code: str
     config: dict = {}
-    format: str = "svg"  # "svg" или "pdf"
+    format: str = "svg"
 
 
 class PDFOptions(BaseModel):
@@ -45,7 +45,6 @@ def _get_sheet_size_mm(format_name: str, orientation: str) -> tuple[float, float
         "A6": (105, 148),
     }
     if format_name == "Custom":
-        # В MVP — A1 как самый большой
         w, h = sizes["A1"]
     else:
         w, h = sizes[format_name]
@@ -56,7 +55,7 @@ def _get_sheet_size_mm(format_name: str, orientation: str) -> tuple[float, float
 
 
 def _write_puppeteer_config(path: str, width_mm: float, height_mm: float) -> None:
-    """Создать puppeteer-конфиг с указанным размером листа."""
+    """Создать puppeteer-конфиг для mmdc (используется только для SVG)."""
     cfg = {
         "executablePath": "/usr/bin/chromium",
         "args": [
@@ -67,23 +66,24 @@ def _write_puppeteer_config(path: str, width_mm: float, height_mm: float) -> Non
             "--disable-extensions",
             "--no-first-run",
         ],
-        "format": "Custom",          # ← без пробела
-        "width": f"{int(width_mm)}mm",   # ← без пробела
-        "height": f"{int(height_mm)}mm", # ← без пробела
+        "format": "Custom",
+        "width": f"{int(width_mm)}mm",
+        "height": f"{int(height_mm)}mm",
         "printBackground": True,
         "preferCSSPageSize": False,
         "margin": {
-            "top": f"{int(10)}mm",
-            "right": f"{int(10)}mm",
-            "bottom": f"{int(10)}mm",
-            "left": f"{int(10)}mm",
+            "top": "10mm",
+            "right": "10mm",
+            "bottom": "10mm",
+            "left": "10mm",
         },
     }
     with open(path, "w") as f:
         json.dump(cfg, f, indent=2)
 
 
-def _write_mermaid_config(path: str, user_config: dict, use_elk: bool, pdf_fit: bool = False) -> None:
+def _write_mermaid_config(path: str, user_config: dict, use_elk: bool) -> None:
+    """Создать mermaid-конфиг для mmdc."""
     cfg = {
         "theme": user_config.get("theme", "default"),
         "flowchart": {
@@ -95,13 +95,12 @@ def _write_mermaid_config(path: str, user_config: dict, use_elk: bool, pdf_fit: 
     }
     if use_elk:
         cfg["flowchart"]["defaultRenderer"] = "elk"
-    if pdf_fit:
-        cfg["pdfFit"] = True
     with open(path, "w") as f:
         json.dump(cfg, f, indent=2)
 
 
 async def _run_mmdc(cmd: list[str], timeout: int = 60) -> None:
+    """Запустить mmdc CLI."""
     logger.info(f"Running: {' '.join(cmd)}")
     proc = await asyncio.create_subprocess_exec(
         *cmd,
@@ -119,29 +118,31 @@ async def _run_mmdc(cmd: list[str], timeout: int = 60) -> None:
         raise HTTPException(status_code=500, detail=msg[:2000])
 
 
-def _parse_svg_size(svg_text: str) -> tuple[float, float]:
-    """Извлекает размеры SVG из viewBox или width/height."""
-    vb_match = re.search(r'viewBox\s*=\s*["\']([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)["\']', svg_text)
-    if vb_match:
-        w = float(vb_match.group(3))
-        h = float(vb_match.group(4))
-        return w, h
-
-    w_match = re.search(r'<svg[^>]*\bwidth\s*=\s*["\']([\d.]+)', svg_text)
-    h_match = re.search(r'<svg[^>]*\bheight\s*=\s*["\']([\d.]+)', svg_text)
-    if w_match and h_match:
-        w = float(w_match.group(1))
-        h = float(h_match.group(1))
-        return w, h
-
-    return 800.0, 600.0
-
-
-def _px_to_mm(px: float, dpi: int = 96) -> float:
-    return px * 25.4 / dpi
+def _ensure_svg_has_dimensions(svg_text: str) -> str:
+    """Добавить явные width/height в SVG и исправить шрифты для WeasyPrint."""
+    # 1. Добавить width/height если их нет
+    if 'width="' not in svg_text or 'height="' not in svg_text:
+        vb_match = re.search(r'viewBox\s*=\s*["\']([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)\s+([\d.\-]+)["\']', svg_text)
+        if vb_match:
+            w = vb_match.group(3)
+            h = vb_match.group(4)
+            svg_text = re.sub(
+                r'<svg([^>]*)>',
+                f'<svg\\1 width="{w}" height="{h}">',
+                svg_text,
+                count=1
+            )
+    
+    # 2. Заменить шрифты Mermaid на системные (Liberation Sans = Arial-подобный)
+    svg_text = svg_text.replace('"trebuchet ms"', '"Liberation Sans"')
+    svg_text = svg_text.replace('trebuchet ms', 'Liberation Sans')
+    svg_text = svg_text.replace('verdana', 'sans-serif')
+    
+    return svg_text
 
 
 def _cleanup(*files: str | None) -> None:
+    """Удалить временные файлы."""
     for f in files:
         if f and os.path.exists(f):
             try:
@@ -163,8 +164,8 @@ async def render_mermaid_with_elk(request: MermaidRenderRequest) -> Response:
         config_file = input_file.replace(".mmd", ".config.json")
         puppeteer_file = input_file.replace(".mmd", ".pup.json")
 
-        _write_mermaid_config(config_file, request.config, use_elk=True, pdf_fit=False)
-        _write_puppeteer_config(puppeteer_file, 594, 841)  # A1 для SVG
+        _write_mermaid_config(config_file, request.config, use_elk=True)
+        _write_puppeteer_config(puppeteer_file, 594, 841)
 
         await _run_mmdc([
             "mmdc", "-i", input_file, "-o", output_file,
@@ -190,7 +191,7 @@ async def render_mermaid_with_elk(request: MermaidRenderRequest) -> Response:
 @mermaid_router.post("/render-pdf")
 async def render_mermaid_to_pdf(request: MermaidRenderRequest) -> Response:
     """
-    Legacy endpoint. Renders PDF with large A1 sheet (594x841mm) to avoid clipping.
+    Legacy endpoint. Renders PDF with A1 format using WeasyPrint.
     """
     files_to_cleanup = []
     try:
@@ -202,29 +203,69 @@ async def render_mermaid_to_pdf(request: MermaidRenderRequest) -> Response:
         use_elk = request.config.get("layout") == "elk"
         config_file = input_file.replace(".mmd", ".config.json")
         files_to_cleanup.append(config_file)
-        _write_mermaid_config(config_file, request.config, use_elk=use_elk, pdf_fit=True)
+        _write_mermaid_config(config_file, request.config, use_elk=use_elk)
 
         puppeteer_file = input_file.replace(".mmd", ".pup.json")
         files_to_cleanup.append(puppeteer_file)
-        _write_puppeteer_config(puppeteer_file, 594, 841)  # A1
+        _write_puppeteer_config(puppeteer_file, 594, 841)
 
-        output_pdf = input_file.replace(".mmd", ".pdf")
-        files_to_cleanup.append(output_pdf)
+        svg_file = input_file.replace(".mmd", ".svg")
+        files_to_cleanup.append(svg_file)
 
         await _run_mmdc([
-            "mmdc", "-i", input_file, "-o", output_pdf,
+            "mmdc", "-i", input_file, "-o", svg_file,
             "-c", config_file, "-p", puppeteer_file, "--quiet",
-        ], timeout=90)
+        ])
 
-        if not os.path.exists(output_pdf):
-            raise HTTPException(status_code=500, detail="PDF file was not created by mmdc")
+        with open(svg_file, "r", encoding="utf-8") as f:
+            svg_content = f.read()
 
-        with open(output_pdf, "rb") as f:
-            pdf_bytes = f.read()
+        # Обеспечиваем наличие width/height и исправляем шрифты
+        svg_content = _ensure_svg_has_dimensions(svg_content)
 
-        if len(pdf_bytes) < 1024:
-            content_preview = pdf_bytes.decode(errors="replace")[:500]
-            raise HTTPException(status_code=500, detail=f"Invalid PDF: {content_preview}")
+        # Используем WeasyPrint для конвертации SVG → PDF
+        from weasyprint import HTML
+        
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page {{
+    size: 594mm 841mm;
+    margin: 10mm;
+}}
+body {{
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+}}
+svg {{
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+}}
+svg text, svg tspan, svg foreignObject {{
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+}}
+svg foreignObject div, svg foreignObject span, svg foreignObject p {{
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+    margin: 0;
+    padding: 0;
+}}
+</style>
+</head>
+<body>
+{svg_content}
+</body>
+</html>"""
+
+        pdf_bytes = HTML(string=html_content).write_pdf()
 
         return Response(
             content=pdf_bytes,
@@ -246,7 +287,7 @@ async def render_mermaid_to_pdf(request: MermaidRenderRequest) -> Response:
 @mermaid_router.post("/render-pdf-advanced")
 async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) -> Response:
     """
-    Advanced PDF export with user-defined parameters (format, orientation, margins).
+    Advanced PDF export with user-defined parameters using WeasyPrint.
     """
     files_to_cleanup = []
     try:
@@ -255,87 +296,86 @@ async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) 
             input_file = f.name
         files_to_cleanup.append(input_file)
 
-        # Get sheet size based on options
+        # Получаем параметры из модального окна
         format_name = request.pdf_options.format if request.pdf_options else "A4"
         orientation = request.pdf_options.orientation if request.pdf_options else "Portrait"
         margin_mm = request.pdf_options.margin_mm if request.pdf_options else 10.0
         fit_mode = request.pdf_options.fit_mode if request.pdf_options else "fit_to_page"
 
         sheet_w_mm, sheet_h_mm = _get_sheet_size_mm(format_name, orientation)
-        # Calculate usable area
-        usable_w_mm = sheet_w_mm - 2 * margin_mm
-        usable_h_mm = sheet_h_mm - 2 * margin_mm
-
         use_elk = request.config.get("layout") == "elk"
 
+        # 1. Рендерим SVG через mmdc
+        config_file = input_file.replace(".mmd", ".config.json")
+        files_to_cleanup.append(config_file)
+        _write_mermaid_config(config_file, request.config, use_elk=use_elk)
+
+        puppeteer_file = input_file.replace(".mmd", ".pup.json")
+        files_to_cleanup.append(puppeteer_file)
+        _write_puppeteer_config(puppeteer_file, 594, 841)
+
+        svg_file = input_file.replace(".mmd", ".svg")
+        files_to_cleanup.append(svg_file)
+
+        await _run_mmdc([
+            "mmdc", "-i", input_file, "-o", svg_file,
+            "-c", config_file, "-p", puppeteer_file, "--quiet",
+        ])
+
+        with open(svg_file, "r", encoding="utf-8") as f:
+            svg_content = f.read()
+
+        # 2. Обеспечиваем наличие width/height и исправляем шрифты
+        svg_content = _ensure_svg_has_dimensions(svg_content)
+
+        # 3. Определяем режим масштабирования
         if fit_mode == "fit_to_page":
-            # 1. Render SVG to get diagram size
-            svg_file = input_file.replace(".mmd", ".svg")
-            files_to_cleanup.append(svg_file)
-
-            svg_config_file = input_file.replace(".mmd", ".svg.config.json")
-            files_to_cleanup.append(svg_config_file)
-            _write_mermaid_config(svg_config_file, request.config, use_elk=use_elk, pdf_fit=False)
-
-            svg_pup_file = input_file.replace(".mmd", ".svg.pup.json")
-            files_to_cleanup.append(svg_pup_file)
-            _write_puppeteer_config(svg_pup_file, 594, 841)  # Large canvas for SVG
-
-            await _run_mmdc([
-                "mmdc", "-i", input_file, "-o", svg_file,
-                "-c", svg_config_file, "-p", svg_pup_file, "--quiet",
-            ])
-
-            with open(svg_file, "r", encoding="utf-8") as f:
-                svg_content = f.read()
-
-            diag_w_px, diag_h_px = _parse_svg_size(svg_content)
-            diag_w_mm = _px_to_mm(diag_w_px)
-            diag_h_mm = _px_to_mm(diag_h_px)
-
-            # Calculate scale
-            scale_x = usable_w_mm / diag_w_mm if diag_w_mm > 0 else 1
-            scale_y = usable_h_mm / diag_h_mm if diag_h_mm > 0 else 1
-            final_scale = min(scale_x, scale_y, 1.0)  # Clamp to 1.0 max
-
-            # Render PDF with calculated scale
-            pdf_config_file = input_file.replace(".mmd", ".pdf.config.json")
-            files_to_cleanup.append(pdf_config_file)
-            _write_mermaid_config(pdf_config_file, request.config, use_elk=use_elk, pdf_fit=True)
-
-            pdf_pup_file = input_file.replace(".mmd", ".pdf.pup.json")
-            files_to_cleanup.append(pdf_pup_file)
-            _write_puppeteer_config(pdf_pup_file, sheet_w_mm, sheet_h_mm)
-
-            output_pdf = input_file.replace(".mmd", ".pdf")
-            files_to_cleanup.append(output_pdf)
-
-            await _run_mmdc([
-                "mmdc", "-i", input_file, "-o", output_pdf,
-                "-c", pdf_config_file, "-p", pdf_pup_file, "--quiet",
-            ], timeout=90)
-
+            svg_style = "max-width: 100%; max-height: 100%; width: auto; height: auto;"
         else:  # actual_size_with_pagination
-            # For MVP: render one large PDF (like legacy endpoint but with user format)
-            pdf_config_file = input_file.replace(".mmd", ".pdf.config.json")
-            files_to_cleanup.append(pdf_config_file)
-            _write_mermaid_config(pdf_config_file, request.config, use_elk=use_elk, pdf_fit=False)
+            # Для MVP: один большой лист, если не влезает — всё равно масштабируем
+            svg_style = "max-width: 100%; max-height: 100%; width: auto; height: auto;"
 
-            pdf_pup_file = input_file.replace(".mmd", ".pdf.pup.json")
-            files_to_cleanup.append(pdf_pup_file)
-            # Use user's format
-            _write_puppeteer_config(pdf_pup_file, sheet_w_mm, sheet_h_mm)
+        # 4. Оборачиваем SVG в HTML с CSS @page и шрифтами
+        from weasyprint import HTML
 
-            output_pdf = input_file.replace(".mmd", ".pdf")
-            files_to_cleanup.append(output_pdf)
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page {{
+    size: {sheet_w_mm}mm {sheet_h_mm}mm;
+    margin: {margin_mm}mm;
+}}
+body {{
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+}}
+svg {{
+    {svg_style}
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+}}
+svg text, svg tspan, svg foreignObject {{
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+}}
+svg foreignObject div, svg foreignObject span, svg foreignObject p {{
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important;
+    margin: 0;
+    padding: 0;
+}}
+</style>
+</head>
+<body>
+{svg_content}
+</body>
+</html>"""
 
-            await _run_mmdc([
-                "mmdc", "-i", input_file, "-o", output_pdf,
-                "-c", pdf_config_file, "-p", pdf_pup_file, "--quiet",
-            ], timeout=90)
-
-        with open(output_pdf, "rb") as f:
-            pdf_bytes = f.read()
+        # 5. Конвертируем HTML → PDF через WeasyPrint
+        pdf_bytes = HTML(string=html_content).write_pdf()
 
         return Response(
             content=pdf_bytes,
@@ -356,6 +396,9 @@ async def render_mermaid_to_pdf_advanced(request: AdvancedMermaidRenderRequest) 
 
 @mermaid_router.get("/health")
 async def mermaid_health() -> dict:
+    """Проверить доступность mmdc CLI и WeasyPrint."""
+    result = {"status": "ok"}
+    
     try:
         proc = await asyncio.create_subprocess_exec(
             "mmdc", "--version",
@@ -363,6 +406,14 @@ async def mermaid_health() -> dict:
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-        return {"status": "ok", "mmdc_version": stdout.decode().strip()}
+        result["mmdc_version"] = stdout.decode().strip()
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        result["mmdc_error"] = str(e)
+
+    try:
+        from weasyprint import HTML
+        result["weasyprint"] = "ok"
+    except Exception as e:
+        result["weasyprint_error"] = str(e)
+
+    return result
