@@ -15,14 +15,29 @@ interface DiagramConfig {
 }
 
 const DEFAULT_CODE = `graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[OK]
-    B -->|No| D[Cancel]
-    C --> E[End]
-    D --> E`;
+  A[Start] --> B{Decision}
+  B -->|Yes| C[OK]
+  B -->|No| D[Cancel]
+  C --> E[End]
+  D --> E`;
+
+// localStorage keys
+const STORAGE_KEY_CODE = 'makotools_diagram_code';
+const STORAGE_KEY_CONFIG = 'makotools_diagram_config';
+const STORAGE_KEY_VIEW = 'makotools_diagram_view';
+
+const DEFAULT_CONFIG: DiagramConfig = {
+  theme: 'default',
+  direction: 'TB',
+  curve: 'basis',
+  layout: 'dagre',
+};
+
+const DEFAULT_VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 const injectMermaidInit = (code: string, config: DiagramConfig): string => {
   let cleaned = code.trim();
+
   const yamlMatch = cleaned.match(/^config:\s*\n[\s\S]*?\n---\s*\n/);
   if (yamlMatch) {
     cleaned = cleaned.slice(yamlMatch[0].length).trim();
@@ -32,11 +47,9 @@ const injectMermaidInit = (code: string, config: DiagramConfig): string => {
   const diagramTypeMatch = cleaned.match(
     /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram-v2|erDiagram|gantt|pie|gitgraph|mindmap|timeline|journey|C4Context|quadrantChart|xychart-beta)\s*(\w+)?/m
   );
-
   if (diagramTypeMatch) {
     const type = diagramTypeMatch[1];
     const isFlowchart = type === 'graph' || type === 'flowchart';
-
     if (isFlowchart) {
       const currentDir = diagramTypeMatch[2];
       const validDirs = ['TB', 'BT', 'LR', 'RL', 'TD'];
@@ -63,37 +76,97 @@ const injectMermaidInit = (code: string, config: DiagramConfig): string => {
     },
     securityLevel: 'loose',
   };
-
   if (config.layout === 'elk') {
     initConfig.flowchart.defaultRenderer = 'elk';
   }
-
   return `%%{init: ${JSON.stringify(initConfig)}}%%\n${cleaned}`;
 };
 
 const DiagramStudio: React.FC = () => {
-  const [code, setCode] = useState(DEFAULT_CODE);
+  const [code, setCode] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_CODE);
+    return saved !== null ? saved : DEFAULT_CODE;
+  });
   const [error, setError] = useState<string | null>(null);
-  const [config, setConfig] = useState<DiagramConfig>({
-    theme: 'default',
-    direction: 'TB',
-    curve: 'basis',
-    layout: 'dagre',
+  const [config, setConfig] = useState<DiagramConfig>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+    if (saved) {
+      try {
+        return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+      } catch {
+        return DEFAULT_CONFIG;
+      }
+    }
+    return DEFAULT_CONFIG;
   });
   const [isRendering, setIsRendering] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   // Zoom & Pan
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_VIEW);
+    if (saved) {
+      try {
+        const view = JSON.parse(saved);
+        return typeof view.zoom === 'number' ? view.zoom : DEFAULT_VIEW.zoom;
+      } catch {
+        return DEFAULT_VIEW.zoom;
+      }
+    }
+    return DEFAULT_VIEW.zoom;
+  });
+  const [pan, setPan] = useState<{ x: number; y: number }>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_VIEW);
+    if (saved) {
+      try {
+        const view = JSON.parse(saved);
+        return {
+          x: typeof view.panX === 'number' ? view.panX : DEFAULT_VIEW.panX,
+          y: typeof view.panY === 'number' ? view.panY : DEFAULT_VIEW.panY,
+        };
+      } catch {
+        return { x: DEFAULT_VIEW.panX, y: DEFAULT_VIEW.panY };
+      }
+    }
+    return { x: DEFAULT_VIEW.panX, y: DEFAULT_VIEW.panY };
+  });
+
   const [isDragging, setIsDragging] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+
   const dragStartRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef({ x: 0, y: 0 });
-
   const diagramRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const idCounter = useRef(0);
+
+  // === Автосохранение в localStorage ===
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CODE, code);
+    } catch (e) {
+      console.warn('Failed to save code to localStorage:', e);
+    }
+  }, [code]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+    } catch (e) {
+      console.warn('Failed to save config to localStorage:', e);
+    }
+  }, [config]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_VIEW,
+        JSON.stringify({ zoom, panX: pan.x, panY: pan.y })
+      );
+    } catch (e) {
+      console.warn('Failed to save view to localStorage:', e);
+    }
+  }, [zoom, pan]);
 
   useEffect(() => {
     mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
@@ -103,10 +176,8 @@ const DiagramStudio: React.FC = () => {
     if (!diagramRef.current) return;
     setIsRendering(true);
     setError(null);
-
     try {
       const codeWithInit = injectMermaidInit(code, config);
-
       if (config.layout === 'elk') {
         const response = await fetch('/api/mermaid/render-elk', {
           method: 'POST',
@@ -197,7 +268,11 @@ const DiagramStudio: React.FC = () => {
     });
   };
   const onMouseUp = () => setIsDragging(false);
-  const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  const resetView = () => {
+    setZoom(DEFAULT_VIEW.zoom);
+    setPan({ x: DEFAULT_VIEW.panX, y: DEFAULT_VIEW.panY });
+  };
 
   // Modal state
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -290,7 +365,7 @@ const DiagramStudio: React.FC = () => {
             <label className="text-[10px] text-[var(--text-muted)] uppercase">{label}</label>
             <select
               value={config[key]}
-              onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
+              onChange={(e) => setConfig({ ...config, [key]: e.target.value as any })}
               className="px-2 py-1 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded text-xs text-[var(--text-primary)]"
             >
               {options.map((o) => (
@@ -340,7 +415,6 @@ const DiagramStudio: React.FC = () => {
               <span className="ml-1 text-[10px] text-[var(--text-muted)] w-8 text-right">{Math.round(zoom * 100)}%</span>
             </div>
           </div>
-
           <div
             ref={previewContainerRef}
             className="flex-1 min-h-0 relative bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl overflow-auto"
@@ -355,7 +429,6 @@ const DiagramStudio: React.FC = () => {
                 <i className="fa-solid fa-spinner fa-spin text-2xl text-white" />
               </div>
             )}
-
             {error ? (
               <div className="absolute inset-0 flex items-center justify-center p-4 overflow-auto">
                 <div className="text-red-500 text-sm max-w-md">
@@ -378,7 +451,6 @@ const DiagramStudio: React.FC = () => {
                 />
               </div>
             )}
-
             {!error && !isRendering && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-[var(--text-muted)] bg-[var(--bg-primary)]/80 px-3 py-1 rounded-full pointer-events-none whitespace-nowrap">
                 <kbd className="px-1 bg-[var(--bg-card)] rounded">Ctrl</kbd>+<i className="fa-solid fa-computer-mouse mx-1" />=Zoom
@@ -410,7 +482,13 @@ const DiagramStudio: React.FC = () => {
         <button onClick={resetView} className="px-6 py-2 bg-[var(--bg-button)]/50 text-[var(--text-primary)] rounded-xl text-sm font-semibold hover:bg-[var(--bg-button)] transition-all border border-[var(--border-primary)]">
           <i className="fa-solid fa-expand mr-2" />Сбросить вид
         </button>
-        <button onClick={() => { setCode(DEFAULT_CODE); resetView(); }} className="px-6 py-2 bg-[var(--bg-button)]/50 text-[var(--text-primary)] rounded-xl text-sm font-semibold hover:bg-[var(--bg-button)] transition-all border border-[var(--border-primary)]">
+        <button
+          onClick={() => {
+            setCode(DEFAULT_CODE);
+            resetView();
+          }}
+          className="px-6 py-2 bg-[var(--bg-button)]/50 text-[var(--text-primary)] rounded-xl text-sm font-semibold hover:bg-[var(--bg-button)] transition-all border border-[var(--border-primary)]"
+        >
           <i className="fa-solid fa-rotate-right mr-2" />Сбросить код
         </button>
       </div>
@@ -420,7 +498,6 @@ const DiagramStudio: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl w-full max-w-md p-6">
             <h3 className="text-lg font-bold text-[var(--text-primary)] mb-4">Параметры PDF</h3>
-
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Формат листа</label>
@@ -439,7 +516,6 @@ const DiagramStudio: React.FC = () => {
                   <option value="Custom">Custom (A1)</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Ориентация</label>
                 <select
@@ -451,7 +527,6 @@ const DiagramStudio: React.FC = () => {
                   <option value="Landscape">Альбомная</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Поля (мм)</label>
                 <input
@@ -464,7 +539,6 @@ const DiagramStudio: React.FC = () => {
                   className="w-full p-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded text-[var(--text-primary)]"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Масштабирование</label>
                 <select
@@ -477,7 +551,6 @@ const DiagramStudio: React.FC = () => {
                 </select>
               </div>
             </div>
-
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowPdfModal(false)}
